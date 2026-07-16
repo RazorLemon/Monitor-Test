@@ -50,7 +50,7 @@ test("keeps the finished app frontend-focused", async () => {
   assert.match(page, /Response Time/);
   assert.match(layout, /title:\s*"BenQ Monitor Test"/);
   assert.match(css, /\.pattern-stage/);
-  assert.match(css, /\.motion-pair/);
+  assert.match(css, /\.bounce-square/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 
   await assert.rejects(access(new URL("../app/_sites-preview", import.meta.url)));

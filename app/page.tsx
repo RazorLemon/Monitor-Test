@@ -1,9 +1,19 @@
 "use client";
 
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 type TestId =
   | "pattern"
+  | "geometryTargets"
+  | "gridScale"
+  | "plainGrid"
+  | "flickerSoft"
+  | "flickerLight"
+  | "flickerContrast"
+  | "contrastBlocks"
+  | "contrastStepBars"
+  | "blackLevels"
+  | "whiteLevels"
   | "pixelBlack"
   | "pixelWhite"
   | "pixelRed"
@@ -13,12 +23,16 @@ type TestId =
   | "colorDistance"
   | "gradients"
   | "sharpness"
+  | "ringSharpness"
   | "viewingAngle"
   | "gamma"
   | "response";
 
 type OverviewId =
   | "pattern"
+  | "geometryGrids"
+  | "flickering"
+  | "contrastBrightness"
   | "pixels"
   | "uniformity"
   | "colorDistance"
@@ -43,6 +57,26 @@ const overviewTests: Array<{
 }> = [
   { id: "pattern", title: "Test Pattern", expandsTo: ["pattern"] },
   {
+    id: "geometryGrids",
+    title: "Geometry & Grids",
+    expandsTo: ["geometryTargets", "gridScale", "plainGrid"],
+  },
+  {
+    id: "flickering",
+    title: "Flickering",
+    expandsTo: ["flickerSoft", "flickerLight", "flickerContrast"],
+  },
+  {
+    id: "contrastBrightness",
+    title: "Contrast and Brightness",
+    expandsTo: [
+      "contrastBlocks",
+      "contrastStepBars",
+      "blackLevels",
+      "whiteLevels",
+    ],
+  },
+  {
     id: "pixels",
     title: "Defective Pixels",
     expandsTo: [
@@ -60,10 +94,14 @@ const overviewTests: Array<{
     expandsTo: ["colorDistance"],
   },
   { id: "gradients", title: "Gradients", expandsTo: ["gradients"] },
-  { id: "sharpness", title: "Sharpness", expandsTo: ["sharpness"] },
+  {
+    id: "sharpness",
+    title: "Sharpness",
+    expandsTo: ["sharpness", "ringSharpness"],
+  },
   { id: "viewingAngle", title: "Viewing Angle", expandsTo: ["viewingAngle"] },
   { id: "gamma", title: "Gamma", expandsTo: ["gamma"] },
-  { id: "response", title: "Response Time", expandsTo: ["response"] },
+  { id: "response", title: "Refresh Rate", expandsTo: ["response"] },
 ];
 
 const allTestIds = overviewTests.flatMap((test) => test.expandsTo);
@@ -81,6 +119,66 @@ const tests: Record<
     shortTitle: "Test Pattern",
     body:
       "Use the test pattern to check image geometry, scaling, line clarity, gradients, and color separation. Circles should be round, grid lines should be even, and fine frequency bars should remain sharply defined.",
+  },
+  geometryTargets: {
+    title: "Geometry Targets",
+    shortTitle: "Geometry",
+    body:
+      "Check geometry, aspect ratio, alignment, and linearity. Circles should stay round, diagonals should stay straight, and the centered squares should remain symmetrical.",
+  },
+  gridScale: {
+    title: "Grid Scale",
+    shortTitle: "Grid Scale",
+    body:
+      "Use the numbered edge rulers to inspect image position, scaling, overscan, and edge-to-edge consistency.",
+  },
+  plainGrid: {
+    title: "Plain Grid",
+    shortTitle: "Plain Grid",
+    body:
+      "Use the full-screen grid to check straightness, spacing, tilt, and visible warping across the panel.",
+  },
+  flickerSoft: {
+    title: "Flickering Soft Matrix",
+    shortTitle: "Soft Matrix",
+    body:
+      "Look for shimmer, crawling noise, visible flicker, or color tint in this low-contrast pixel matrix. A stable display should appear steady.",
+  },
+  flickerLight: {
+    title: "Flickering Light Matrix",
+    shortTitle: "Light Matrix",
+    body:
+      "Use this slightly brighter fine matrix to check temporal stability. The field should not pulse, ripple, or show distracting brightness changes.",
+  },
+  flickerContrast: {
+    title: "Flickering Contrast Matrix",
+    shortTitle: "Contrast Matrix",
+    body:
+      "Inspect this high-contrast pixel matrix for inversion flicker, shimmer, and motion-like artifacts while viewing from a normal distance.",
+  },
+  contrastBlocks: {
+    title: "Contrast Color Blocks",
+    shortTitle: "Color Blocks",
+    body:
+      "Check whether subtle nested blocks remain distinguishable in gray, red, green, and blue fields without crushing or oversaturation.",
+  },
+  contrastStepBars: {
+    title: "Contrast Step Bars",
+    shortTitle: "Step Bars",
+    body:
+      "Inspect the 32-step grayscale and RGB bars. Adjacent steps should remain visible from dark to bright without sudden jumps or clipping.",
+  },
+  blackLevels: {
+    title: "Black Level Blocks",
+    shortTitle: "Black Levels",
+    body:
+      "Use the near-black blocks to tune shadow detail. The lowest values should be hard to see, while higher blocks should gradually separate from black.",
+  },
+  whiteLevels: {
+    title: "White Level Blocks",
+    shortTitle: "White Levels",
+    body:
+      "Use the near-white blocks to tune highlight detail. Each block should remain faintly distinguishable without washing into the white background.",
   },
   pixelBlack: {
     title: "Defective Pixels on Black",
@@ -136,6 +234,12 @@ const tests: Record<
     body:
       "Use repeated text to check whether your monitor reproduces fine details sharply and without halos, shadows, or unusual color fringes.",
   },
+  ringSharpness: {
+    title: "Concentric Sharpness",
+    shortTitle: "Rings",
+    body:
+      "Inspect the concentric rings for moire, shimmer, blur, or uneven line separation. The center and outer rings should remain clean and symmetrical.",
+  },
   viewingAngle: {
     title: "Viewing Angle",
     shortTitle: "Viewing Angle",
@@ -149,10 +253,10 @@ const tests: Record<
       "Adjust the level until the BenQ mark blends into the striped background as much as possible. The value shown is an approximate visual gamma reference.",
   },
   response: {
-    title: "Response Time",
+    title: "Refresh Rate Motion",
     shortTitle: "Response Time",
     body:
-      "Compare moving rectangles against the background. Increase speed until streaks become visible, then adjust the distance to judge motion clarity and pixel transition behavior.",
+      "Watch the bouncing square for blur, ghosting, tearing, or uneven motion. Increase speed to make refresh-rate and pixel-response artifacts easier to see.",
   },
 };
 
@@ -201,6 +305,16 @@ const colorChoices = [
 
 const sharpnessText =
   "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua.";
+const sharpnessLine = `${sharpnessText} ${sharpnessText} ${sharpnessText}`;
+const uniformityToneValues: Record<number, number> = {
+  25: 191,
+  50: 128,
+  75: 64,
+};
+const gridScaleNumbers = Array.from({ length: 30 }, (_, index) => index + 1);
+const contrastStepNumbers = Array.from({ length: 32 }, (_, index) => index + 1);
+const blackLevelNumbers = Array.from({ length: 20 }, (_, index) => index + 1);
+const whiteLevelNumbers = Array.from({ length: 20 }, (_, index) => 254 - index);
 
 function expandSelection(selected: Set<OverviewId>) {
   const expanded = overviewTests
@@ -212,6 +326,24 @@ function expandSelection(selected: Set<OverviewId>) {
 
 function rgbString(rgb: RGB) {
   return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+}
+
+function stepColor(channel: "gray" | "red" | "green" | "blue", index: number) {
+  const value = Math.round((index / (contrastStepNumbers.length - 1)) * 255);
+
+  if (channel === "red") {
+    return `rgb(${value}, 0, 0)`;
+  }
+
+  if (channel === "green") {
+    return `rgb(0, ${value}, 0)`;
+  }
+
+  if (channel === "blue") {
+    return `rgb(0, 0, ${value})`;
+  }
+
+  return `rgb(${value}, ${value}, ${value})`;
 }
 
 function clampChannel(value: number) {
@@ -253,6 +385,121 @@ function BenqWordmark({ muted = false }: { muted?: boolean }) {
   );
 }
 
+function roundedCanvasRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const right = x + width;
+  const bottom = y + height;
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(right - radius, y);
+  ctx.quadraticCurveTo(right, y, right, y + radius);
+  ctx.lineTo(right, bottom - radius);
+  ctx.quadraticCurveTo(right, bottom, right - radius, bottom);
+  ctx.lineTo(x + radius, bottom);
+  ctx.quadraticCurveTo(x, bottom, x, bottom - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+function GammaPatternCanvas({ tone }: { tone: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return;
+    }
+
+    const drawPattern = () => {
+      const rect = canvas.getBoundingClientRect();
+      const width = Math.max(1, rect.width);
+      const height = Math.max(1, rect.height);
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return;
+      }
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      for (let x = 0; x < width; x += 2) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x, 0, 1, height);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(x + 1, 0, 1, height);
+      }
+
+      const baseWidth = 760;
+      const baseHeight = 190;
+      const targetWidth = Math.min(baseWidth, Math.max(280, width - 80));
+      const scale = Math.min(targetWidth / baseWidth, (height * 0.42) / baseHeight);
+      const color = `rgb(${tone}, ${tone}, ${tone})`;
+
+      ctx.save();
+      ctx.translate((width - baseWidth * scale) / 2, (height - baseHeight * scale) / 2);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = color;
+      ctx.strokeStyle = color;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      const markSize = 150;
+      const markX = 18;
+      const markY = 20;
+
+      ctx.save();
+      ctx.translate(markX + markSize / 2, markY + markSize / 2);
+      ctx.rotate((-8 * Math.PI) / 180);
+      ctx.lineWidth = 16;
+      roundedCanvasRect(ctx, -markSize / 2, -markSize / 2, markSize, markSize, 18);
+      ctx.stroke();
+      ctx.font = "800 90px Inter, Segoe UI, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("B", 0, 7);
+      ctx.restore();
+
+      ctx.font = "800 130px Inter, Segoe UI, Arial, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("BenQ", 210, baseHeight / 2 + 5);
+      ctx.restore();
+    };
+
+    drawPattern();
+
+    const resizeObserver = new ResizeObserver(drawPattern);
+    resizeObserver.observe(canvas);
+
+    return () => resizeObserver.disconnect();
+  }, [tone]);
+
+  return (
+    <canvas
+      aria-label="Gamma stripe pattern with BenQ reference mark"
+      className="gamma-pattern-canvas"
+      height={720}
+      ref={canvasRef}
+      role="img"
+      width={1280}
+    />
+  );
+}
+
 export default function MonitorTestApp() {
   const [mode, setMode] = useState<Mode>("overview");
   const [selected, setSelected] = useState(
@@ -279,27 +526,30 @@ export default function MonitorTestApp() {
   const [sharpnessColor, setSharpnessColor] = useState<"dark" | "light">(
     "dark",
   );
-  const [fontSize, setFontSize] = useState(18);
+  const [sharpnessZoom, setSharpnessZoom] = useState(100);
   const [gamma, setGamma] = useState(1.5);
   const [responseSettings, setResponseSettings] = useState({
-    background: "Gray (50%)",
-    left: "Blue",
-    right: "White",
+    background: "White",
+    square: "Black",
     speed: 480,
-    distance: 75,
     paused: false,
   });
   const [viewportWidth, setViewportWidth] = useState(1920);
+  const [viewportHeight, setViewportHeight] = useState(1080);
 
   const activeTest = runIds[currentIndex] ?? allTestIds[0];
   const activeNumber = currentIndex + 1;
   const totalTests = runIds.length;
 
   useEffect(() => {
-    const updateWidth = () => setViewportWidth(window.innerWidth);
-    updateWidth();
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
+    const updateViewport = () => {
+      setViewportWidth(window.innerWidth);
+      setViewportHeight(window.innerHeight);
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
   }, []);
 
   useEffect(() => {
@@ -338,10 +588,19 @@ export default function MonitorTestApp() {
     [gradientColor, gradientSteps],
   );
 
-  const responseDuration = useMemo(() => {
-    const travel = viewportWidth + responseSettings.distance + 260;
-    return Math.max(0.35, travel / responseSettings.speed);
-  }, [responseSettings.distance, responseSettings.speed, viewportWidth]);
+  const responseDurations = useMemo(() => {
+    const squareSize = 72;
+    const xTravel = Math.max(1, viewportWidth - squareSize);
+    const yTravel = Math.max(1, viewportHeight - squareSize);
+    const xComponent = responseSettings.speed * 0.82;
+    const yComponent = responseSettings.speed * 0.57;
+
+    return {
+      x: Math.max(0.25, xTravel / xComponent),
+      y: Math.max(0.25, yTravel / yComponent),
+    };
+  }, [responseSettings.speed, viewportHeight, viewportWidth]);
+  const sharpnessFontSize = 10 + sharpnessZoom * 0.08;
 
   const startWithGuide = () => {
     const expanded = expandSelection(selected);
@@ -461,10 +720,10 @@ export default function MonitorTestApp() {
             distancePatch={distancePatch}
             gradientBackground={gradientBackground}
             sharpnessColor={sharpnessColor}
-            fontSize={fontSize}
+            fontSize={sharpnessFontSize}
             gamma={gamma}
             responseSettings={responseSettings}
-            responseDuration={responseDuration}
+            responseDurations={responseDurations}
           />
 
           <button
@@ -501,8 +760,8 @@ export default function MonitorTestApp() {
             setGradientSteps={setGradientSteps}
             sharpnessColor={sharpnessColor}
             setSharpnessColor={setSharpnessColor}
-            fontSize={fontSize}
-            setFontSize={setFontSize}
+            sharpnessZoom={sharpnessZoom}
+            setSharpnessZoom={setSharpnessZoom}
             gamma={gamma}
             setGamma={setGamma}
             responseSettings={responseSettings}
@@ -534,7 +793,7 @@ function OverviewScreen({
       <div className="overview-spectrum" aria-hidden="true" />
       <header className="overview-header">
         <p>Frontend display diagnostics</p>
-        <h1>BenQ Monitor Test</h1>
+        <h1>Mishra Monitor Test</h1>
       </header>
 
       <div className="overview-board">
@@ -678,7 +937,7 @@ function TestStage({
   fontSize,
   gamma,
   responseSettings,
-  responseDuration,
+  responseDurations,
 }: {
   id: TestId;
   uniformity: number;
@@ -690,16 +949,49 @@ function TestStage({
   gamma: number;
   responseSettings: {
     background: string;
-    left: string;
-    right: string;
+    square: string;
     speed: number;
-    distance: number;
     paused: boolean;
   };
-  responseDuration: number;
+  responseDurations: {
+    x: number;
+    y: number;
+  };
 }) {
   if (id === "pattern") {
     return <PatternStage />;
+  }
+
+  if (id === "geometryTargets") {
+    return <GeometryTargetsStage />;
+  }
+
+  if (id === "gridScale") {
+    return <GridScaleStage />;
+  }
+
+  if (id === "plainGrid") {
+    return <PlainGridStage />;
+  }
+
+  if (
+    id === "flickerSoft" ||
+    id === "flickerLight" ||
+    id === "flickerContrast"
+  ) {
+    return <FlickeringStage variant={id} />;
+  }
+
+  if (id === "contrastBlocks") {
+    return <ContrastBlocksStage />;
+  }
+
+  if (id === "contrastStepBars") {
+    return <ContrastStepBarsStage />;
+  }
+
+  if (id === "blackLevels" || id === "whiteLevels") {
+    return <BrightnessLevelStage variant={id} />;
   }
 
   if (id.startsWith("pixel")) {
@@ -720,7 +1012,7 @@ function TestStage({
   }
 
   if (id === "uniformity") {
-    const value = Math.round(255 * (uniformity / 100));
+    const value = uniformityToneValues[uniformity] ?? uniformityToneValues[50];
     return (
       <div
         className="test-stage solid-stage"
@@ -754,18 +1046,30 @@ function TestStage({
 
   if (id === "sharpness") {
     const isDark = sharpnessColor === "dark";
-    const textRows = Array.from({ length: 42 }, (_, index) => (
-      <p key={index}>{sharpnessText}</p>
+    const textRows = Array.from({ length: 120 }, (_, index) => (
+      <p key={index}>{sharpnessLine}</p>
     ));
 
     return (
       <div
-        className={isDark ? "test-stage sharpness-stage" : "test-stage sharpness-stage invert"}
-        style={{ fontSize: `${fontSize}px` }}
+        className={
+          isDark
+            ? "test-stage sharpness-stage sharpness-dark"
+            : "test-stage sharpness-stage sharpness-light"
+        }
+        style={{
+          fontSize: `${fontSize}px`,
+          color: isDark ? "#050505" : "#ffffff",
+          backgroundColor: isDark ? "#ffffff" : "#000000",
+        }}
       >
         {textRows}
       </div>
     );
+  }
+
+  if (id === "ringSharpness") {
+    return <RingSharpnessStage />;
   }
 
   if (id === "viewingAngle") {
@@ -784,34 +1088,184 @@ function TestStage({
     const logoTone = Math.round(88 + gamma * 36);
     return (
       <div className="test-stage gamma-stage">
-        <div
-          className="gamma-logo"
-          style={{ color: `rgb(${logoTone}, ${logoTone}, ${logoTone})` }}
-        >
-          <BenqWordmark muted />
-        </div>
+        <GammaPatternCanvas tone={logoTone} />
       </div>
     );
   }
 
   const background = getColorByName(responseSettings.background).value;
-  const left = getColorByName(responseSettings.left).value;
-  const right = getColorByName(responseSettings.right).value;
+  const square = getColorByName(responseSettings.square).value;
 
   return (
     <div className="test-stage response-stage" style={{ background }}>
       <div
-        className={responseSettings.paused ? "motion-pair paused" : "motion-pair"}
+        className={
+          responseSettings.paused ? "bounce-x bounce-paused" : "bounce-x"
+        }
         style={
           {
-            "--response-duration": `${responseDuration}s`,
-            "--response-distance": `${responseSettings.distance}px`,
+            "--bounce-x-duration": `${responseDurations.x}s`,
           } as CSSProperties
         }
       >
-        <div className="motion-bar left" style={{ background: left }} />
-        <div className="motion-bar right" style={{ background: right }} />
+        <div
+          className={
+            responseSettings.paused ? "bounce-y bounce-paused" : "bounce-y"
+          }
+          style={
+            {
+              "--bounce-y-duration": `${responseDurations.y}s`,
+            } as CSSProperties
+          }
+        >
+          <div className="bounce-square" style={{ background: square }} />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function GeometryTargetsStage() {
+  return (
+    <div className="test-stage geometry-target-stage">
+      <div className="geometry-circle geometry-circle-main" />
+      <div className="geometry-circle geometry-circle-a" />
+      <div className="geometry-circle geometry-circle-b" />
+      <div className="geometry-circle geometry-circle-c" />
+      <div className="geometry-circle geometry-circle-d" />
+      <div className="geometry-frame geometry-frame-large" />
+      <div className="geometry-frame geometry-frame-small" />
+      <div className="geometry-diagonal geometry-diagonal-a" />
+      <div className="geometry-diagonal geometry-diagonal-b" />
+    </div>
+  );
+}
+
+function GridScaleStage() {
+  const descending = [...gridScaleNumbers].reverse();
+
+  return (
+    <div className="test-stage grid-scale-stage">
+      <div className="grid-scale-top" aria-hidden="true">
+        {descending.map((number) => (
+          <span key={number}>{number}</span>
+        ))}
+      </div>
+      <div className="grid-scale-side grid-scale-left" aria-hidden="true">
+        {gridScaleNumbers.map((number) => (
+          <span key={number}>{number}</span>
+        ))}
+      </div>
+      <div className="grid-scale-side grid-scale-right" aria-hidden="true">
+        {descending.map((number) => (
+          <span key={number}>{number}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlainGridStage() {
+  return <div className="test-stage plain-grid-stage" />;
+}
+
+function FlickeringStage({
+  variant,
+}: {
+  variant: "flickerSoft" | "flickerLight" | "flickerContrast";
+}) {
+  return (
+    <div className={`test-stage flicker-stage ${variant}`} aria-hidden="true" />
+  );
+}
+
+function ContrastBlocksStage() {
+  const tones = ["gray", "red", "green", "blue"] as const;
+
+  return (
+    <div className="test-stage contrast-blocks-stage">
+      {tones.map((tone) => (
+        <div className={`contrast-block-set contrast-block-${tone}`} key={tone}>
+          <div className="contrast-half contrast-a">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="contrast-half contrast-b">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ContrastStepBarsStage() {
+  const rows = ["gray", "red", "green", "blue"] as const;
+
+  return (
+    <div className="test-stage contrast-bars-stage">
+      <div className="contrast-bars-stack">
+        {rows.map((row) => (
+          <div className="contrast-bar-row" key={row}>
+            <div className="contrast-bar">
+              {contrastStepNumbers.map((number, index) => (
+                <span
+                  key={number}
+                  style={{ background: stepColor(row, index) }}
+                />
+              ))}
+            </div>
+            <div className="contrast-bar-labels" aria-hidden="true">
+              {contrastStepNumbers.map((number) => (
+                <span key={number}>{number}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BrightnessLevelStage({
+  variant,
+}: {
+  variant: "blackLevels" | "whiteLevels";
+}) {
+  const levels = variant === "blackLevels" ? blackLevelNumbers : whiteLevelNumbers;
+
+  return (
+    <div
+      className={
+        variant === "blackLevels"
+          ? "test-stage brightness-level-stage black-level-stage"
+          : "test-stage brightness-level-stage white-level-stage"
+      }
+    >
+      <div className="brightness-level-grid">
+        {levels.map((level) => (
+          <div className="brightness-level-cell" key={level}>
+            <span>{level}</span>
+            <div
+              className="brightness-level-swatch"
+              style={{ background: `rgb(${level}, ${level}, ${level})` }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RingSharpnessStage() {
+  return (
+    <div className="test-stage ring-sharpness-stage">
+      <div className="ring-sharpness-pattern" aria-hidden="true" />
     </div>
   );
 }
@@ -852,7 +1306,11 @@ function PatternStage() {
             <span />
             <span />
           </div>
-          <BenqWordmark />
+          <img
+            alt="BenQ"
+            className="pattern-logo-image"
+            src="/benq-reference-logo.png"
+          />
         </div>
         <div className="gray-rule" />
         <div className="cmy-bars">
@@ -929,8 +1387,8 @@ function InfoPanel({
   setGradientSteps,
   sharpnessColor,
   setSharpnessColor,
-  fontSize,
-  setFontSize,
+  sharpnessZoom,
+  setSharpnessZoom,
   gamma,
   setGamma,
   responseSettings,
@@ -952,24 +1410,20 @@ function InfoPanel({
   setGradientSteps: (value: number) => void;
   sharpnessColor: "dark" | "light";
   setSharpnessColor: (value: "dark" | "light") => void;
-  fontSize: number;
-  setFontSize: (value: number) => void;
+  sharpnessZoom: number;
+  setSharpnessZoom: (value: number) => void;
   gamma: number;
   setGamma: (value: number) => void;
   responseSettings: {
     background: string;
-    left: string;
-    right: string;
+    square: string;
     speed: number;
-    distance: number;
     paused: boolean;
   };
   setResponseSettings: (value: {
     background: string;
-    left: string;
-    right: string;
+    square: string;
     speed: number;
-    distance: number;
     paused: boolean;
   }) => void;
 }) {
@@ -1010,8 +1464,8 @@ function InfoPanel({
             setGradientSteps={setGradientSteps}
             sharpnessColor={sharpnessColor}
             setSharpnessColor={setSharpnessColor}
-            fontSize={fontSize}
-            setFontSize={setFontSize}
+            sharpnessZoom={sharpnessZoom}
+            setSharpnessZoom={setSharpnessZoom}
             gamma={gamma}
             setGamma={setGamma}
             responseSettings={responseSettings}
@@ -1037,8 +1491,8 @@ function ControlSet({
   setGradientSteps,
   sharpnessColor,
   setSharpnessColor,
-  fontSize,
-  setFontSize,
+  sharpnessZoom,
+  setSharpnessZoom,
   gamma,
   setGamma,
   responseSettings,
@@ -1057,24 +1511,20 @@ function ControlSet({
   setGradientSteps: (value: number) => void;
   sharpnessColor: "dark" | "light";
   setSharpnessColor: (value: "dark" | "light") => void;
-  fontSize: number;
-  setFontSize: (value: number) => void;
+  sharpnessZoom: number;
+  setSharpnessZoom: (value: number) => void;
   gamma: number;
   setGamma: (value: number) => void;
   responseSettings: {
     background: string;
-    left: string;
-    right: string;
+    square: string;
     speed: number;
-    distance: number;
     paused: boolean;
   };
   setResponseSettings: (value: {
     background: string;
-    left: string;
-    right: string;
+    square: string;
     speed: number;
-    distance: number;
     paused: boolean;
   }) => void;
 }) {
@@ -1169,18 +1619,19 @@ function ControlSet({
           </label>
         </fieldset>
         <RangeControl
-          label="Font size (point)"
-          min={10}
-          max={18}
-          value={fontSize}
-          onChange={setFontSize}
+          label="Zoom (%)"
+          min={0}
+          max={100}
+          value={sharpnessZoom}
+          displayValue={`${sharpnessZoom}%`}
+          onChange={setSharpnessZoom}
         />
         <button
           className="reset-button"
           type="button"
           onClick={() => {
             setSharpnessColor("dark");
-            setFontSize(18);
+            setSharpnessZoom(100);
           }}
         >
           Reset settings
@@ -1216,16 +1667,10 @@ function ControlSet({
             includeGray
           />
           <ColorSelect
-            label="Left rectangle"
-            value={responseSettings.left}
-            onChange={(left) => setResponseSettings({ ...responseSettings, left })}
-            includeGray={false}
-          />
-          <ColorSelect
-            label="Right rectangle"
-            value={responseSettings.right}
-            onChange={(right) =>
-              setResponseSettings({ ...responseSettings, right })
+            label="Square"
+            value={responseSettings.square}
+            onChange={(square) =>
+              setResponseSettings({ ...responseSettings, square })
             }
             includeGray
           />
@@ -1238,15 +1683,6 @@ function ControlSet({
             value={responseSettings.speed}
             onChange={(speed) =>
               setResponseSettings({ ...responseSettings, speed })
-            }
-          />
-          <RangeControl
-            label="Distance (pixels)"
-            min={0}
-            max={150}
-            value={responseSettings.distance}
-            onChange={(distance) =>
-              setResponseSettings({ ...responseSettings, distance })
             }
           />
           <button
@@ -1267,11 +1703,9 @@ function ControlSet({
             type="button"
             onClick={() =>
               setResponseSettings({
-                background: "Gray (50%)",
-                left: "Blue",
-                right: "White",
+                background: "White",
+                square: "Black",
                 speed: 480,
-                distance: 75,
                 paused: false,
               })
             }
