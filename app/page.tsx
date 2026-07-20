@@ -335,10 +335,13 @@ function expandSelection(selected: Set<OverviewId>) {
 
 function orderRunIds(ids: TestId[]) {
   const selectedIds = new Set(ids);
+  const patternIds = selectedIds.has("pattern") ? (["pattern"] as TestId[]) : [];
   const solidColorIds = solidColorTestIds.filter((id) => selectedIds.has(id));
-  const remainingIds = ids.filter((id) => !solidColorTestIds.includes(id));
+  const remainingIds = ids.filter(
+    (id) => id !== "pattern" && !solidColorTestIds.includes(id),
+  );
 
-  return [...solidColorIds, ...remainingIds];
+  return [...patternIds, ...solidColorIds, ...remainingIds];
 }
 
 function rgbString(rgb: RGB) {
