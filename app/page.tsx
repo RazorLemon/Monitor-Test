@@ -105,6 +105,15 @@ const overviewTests: Array<{
 ];
 
 const allTestIds = overviewTests.flatMap((test) => test.expandsTo);
+const solidColorTestIds: TestId[] = [
+  "pixelBlack",
+  "pixelWhite",
+  "pixelRed",
+  "pixelGreen",
+  "pixelBlue",
+];
+
+const orderedAllTestIds = orderRunIds(allTestIds);
 
 const tests: Record<
   TestId,
@@ -181,32 +190,32 @@ const tests: Record<
       "Use the near-white blocks to tune highlight detail. Each block should remain faintly distinguishable without washing into the white background.",
   },
   pixelBlack: {
-    title: "Defective Pixels on Black",
-    shortTitle: "Pixels on Black",
+    title: "Pixel Test for Black Color",
+    shortTitle: "Pixel Test for Black",
     body:
       "All pixels should be black. Any colored or bright point can indicate a stuck subpixel that remains illuminated.",
   },
   pixelWhite: {
-    title: "Defective Pixels on White",
-    shortTitle: "Pixels on White",
+    title: "Pixel Test for White Color",
+    shortTitle: "Pixel Test for White",
     body:
       "All pixels should be white. Any dark point can indicate a missing or inactive pixel.",
   },
   pixelRed: {
-    title: "Defective Pixels on Red",
-    shortTitle: "Pixels on Red",
+    title: "Pixel Test for Red Color",
+    shortTitle: "Pixel Test for Red",
     body:
       "The entire screen should be pure red. Look closely for black, white, blue, or green dots.",
   },
   pixelGreen: {
-    title: "Defective Pixels on Green",
-    shortTitle: "Pixels on Green",
+    title: "Pixel Test for Green Color",
+    shortTitle: "Pixel Test for Green",
     body:
       "The entire screen should be pure green. Any point that does not match the field may indicate a defective subpixel.",
   },
   pixelBlue: {
-    title: "Defective Pixels on Blue",
-    shortTitle: "Pixels on Blue",
+    title: "Pixel Test for Blue Color",
+    shortTitle: "Pixel Test for Blue",
     body:
       "The entire screen should be pure blue. Scan the edges and corners as well as the center.",
   },
@@ -321,7 +330,15 @@ function expandSelection(selected: Set<OverviewId>) {
     .filter((test) => selected.has(test.id))
     .flatMap((test) => test.expandsTo);
 
-  return expanded.length ? expanded : allTestIds;
+  return expanded.length ? orderRunIds(expanded) : orderedAllTestIds;
+}
+
+function orderRunIds(ids: TestId[]) {
+  const selectedIds = new Set(ids);
+  const solidColorIds = solidColorTestIds.filter((id) => selectedIds.has(id));
+  const remainingIds = ids.filter((id) => !solidColorTestIds.includes(id));
+
+  return [...solidColorIds, ...remainingIds];
 }
 
 function rgbString(rgb: RGB) {
@@ -505,7 +522,7 @@ export default function MonitorTestApp() {
   const [selected, setSelected] = useState(
     () => new Set<OverviewId>(overviewTests.map((test) => test.id)),
   );
-  const [runIds, setRunIds] = useState<TestId[]>(allTestIds);
+  const [runIds, setRunIds] = useState<TestId[]>(orderedAllTestIds);
   const [guideIndex, setGuideIndex] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [uiVisible, setUiVisible] = useState(true);
@@ -537,7 +554,7 @@ export default function MonitorTestApp() {
   const [viewportWidth, setViewportWidth] = useState(1920);
   const [viewportHeight, setViewportHeight] = useState(1080);
 
-  const activeTest = runIds[currentIndex] ?? allTestIds[0];
+  const activeTest = runIds[currentIndex] ?? orderedAllTestIds[0];
   const activeNumber = currentIndex + 1;
   const totalTests = runIds.length;
 
@@ -615,7 +632,7 @@ export default function MonitorTestApp() {
 
   const startSingle = (id: OverviewId) => {
     const group = overviewTests.find((test) => test.id === id);
-    const expanded = group?.expandsTo ?? allTestIds;
+    const expanded = group?.expandsTo ?? orderedAllTestIds;
     setRunIds(expanded);
     setCurrentIndex(0);
     setGuideIndex(0);
