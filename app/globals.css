@@ -1749,6 +1749,7 @@ button:disabled {
   height: clamp(70px, 10vw, 128px);
   max-width: 56%;
   object-fit: contain;
+  transform: translateY(-28px);
 }
 
 .center-gradient {
