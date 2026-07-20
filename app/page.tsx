@@ -793,7 +793,7 @@ function OverviewScreen({
       <div className="overview-spectrum" aria-hidden="true" />
       <header className="overview-header">
         <p>Frontend display diagnostics</p>
-        <h1>Mishra Monitor Test</h1>
+        <h1>BenQ Monitor Test</h1>
       </header>
 
       <div className="overview-board">
