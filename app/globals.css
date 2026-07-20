@@ -328,7 +328,7 @@ button:disabled {
 }
 
 .guide-icon-nav span:first-child {
-  left: 22px;
+  left: 104px;
 }
 
 .guide-icon-nav span:first-child::before,
@@ -348,7 +348,7 @@ button:disabled {
 }
 
 .guide-icon-nav span:nth-child(2) {
-  left: 22px;
+  left: 104px;
   top: 74px;
 }
 
@@ -358,13 +358,7 @@ button:disabled {
 }
 
 .guide-icon-nav span:nth-child(3) {
-  position: absolute;
-  top: 8px;
-  left: 112px;
-  width: 68px;
-  height: 108px;
-  border: 2px solid rgba(255, 255, 255, 0.82);
-  border-radius: 34px;
+  display: none;
 }
 
 .guide-icon-nav span:nth-child(3)::before {
