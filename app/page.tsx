@@ -265,7 +265,7 @@ const guideSlides = [
     eyebrow: "Navigation",
     title: "Move Through the Test",
     body:
-      "Use your mouse, keyboard arrows, or the left-edge menu to navigate between test screens.",
+      "Use your keyboard arrow keys, or the left-edge menu to navigate between test screens.",
     icon: "nav",
   },
   {
